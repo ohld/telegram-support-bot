@@ -45,7 +45,11 @@ def forward_to_user(update, context):
         'from': {'id': 49820636, 'first_name': 'Daniil', 'is_bot': False, 'last_name': 'Okhlopkov', 'username': 'danokhlopkov', 'language_code': 'en'}
     }"""
     user_id = update.message.reply_to_message.forward_from.id
-    update.message.forward(chat_id=user_id)
+    context.bot.copy_message(
+        message_id=update.message.message_id,
+        chat_id=user_id,
+        from_chat_id=update.message.chat_id
+    )
 
 
 def setup_dispatcher(dp):
