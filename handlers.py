@@ -56,4 +56,7 @@ def setup_dispatcher(dp):
     dp.add_handler(CommandHandler('start', start))
     dp.add_handler(MessageHandler(Filters.chat_type.private, forward_to_chat))
     dp.add_handler(MessageHandler(Filters.chat(TELEGRAM_SUPPORT_CHAT_ID) & Filters.reply, forward_to_user))
+    dp.add_handler(CommandHandler('goaway', start))
+    dp.add_handler(CommandHandler('fkof', start))
+
     return dp
