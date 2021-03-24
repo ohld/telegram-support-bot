@@ -22,3 +22,17 @@ TELEGRAM_SUPPORT_CHAT_ID=  # chat_id where the bot will forward all incoming mes
 HEROKU_APP_NAME=  # name of your Heroku app for webhook setup
 WELCOME_MESSAGE=  # text of a message that bot will write on /start command
 ```
+
+## Run bot locally
+
+First, you need to install all dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+Then you can run the bot. Don't forget to create `.env` file in the root folder with all required params (read above).
+
+``` bash
+python main.py
+```
