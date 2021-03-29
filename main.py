@@ -22,8 +22,8 @@ else:  # webhook mode
     updater.start_webhook(
         listen="0.0.0.0",
         port=PORT,
-        url_path=TELEGRAM_TOKEN
+        url_path=TELEGRAM_TOKEN,
+        webhook_url=f"https://{HEROKU_APP_NAME}.herokuapp.com/{TELEGRAM_TOKEN}"
     )
 
-    updater.bot.set_webhook(f"https://{HEROKU_APP_NAME}.herokuapp.com/{TELEGRAM_TOKEN}")
     updater.idle()
