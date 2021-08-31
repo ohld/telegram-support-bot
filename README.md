@@ -21,6 +21,14 @@ TELEGRAM_SUPPORT_CHAT_ID=  # chat_id where the bot will forward all incoming mes
 # optional params
 HEROKU_APP_NAME=  # name of your Heroku app for webhook setup
 WELCOME_MESSAGE=  # text of a message that bot will write on /start command
+
+# If user don't allow forward his messages Bot adds his comment with thue user_id to reply
+# Support team must reply to "bot reply", not to original user forwarded message
+# Customize message for support team here:
+REPLY_TO_THIS_MESSAGE=User above don't allow forward his messages. Reply to this message.
+# If support reply to forwarded messages with hidded sender, bor warns with next error:
+WRONG_REPLY=User above don't allow forward his messages. You must reply to bot reply under user forwarded message.
+
 ```
 
 ## Run bot locally
