@@ -1,7 +1,7 @@
 from telegram.ext import Updater
 
-from handlers import setup_dispatcher
-from settings import TELEGRAM_TOKEN, HEROKU_APP_NAME, PORT
+from handler import setup_dispatcher
+from settings import HEROKU_APP_NAME, PORT, TELEGRAM_TOKEN
 
 # Setup bot handlers
 updater = Updater(TELEGRAM_TOKEN)
@@ -18,12 +18,14 @@ if HEROKU_APP_NAME is None:  # pooling mode
     updater.idle()
 
 else:  # webhook mode
-    print(f"Running bot in webhook mode. Make sure that this url is correct: https://{HEROKU_APP_NAME}.herokuapp.com/")
+    print(
+        f"Running bot in webhook mode. Make sure that this url is correct: https://{HEROKU_APP_NAME}.herokuapp.com/"
+    )
     updater.start_webhook(
         listen="0.0.0.0",
         port=PORT,
         url_path=TELEGRAM_TOKEN,
-        webhook_url=f"https://{HEROKU_APP_NAME}.herokuapp.com/{TELEGRAM_TOKEN}"
+        webhook_url=f"https://{HEROKU_APP_NAME}.herokuapp.com/{TELEGRAM_TOKEN}",
     )
 
     updater.idle()
