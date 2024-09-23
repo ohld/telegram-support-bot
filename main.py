@@ -4,7 +4,7 @@ import signal
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
 from handlers import start, forward_to_group, forward_to_user
-from settings import TELEGRAM_TOKEN, TELEGRAM_SUPPORT_CHAT_ID
+from settings import TELEGRAM_TOKEN, TELEGRAM_SUPPORT_CHAT_ID, PERSONAL_ACCOUNT_CHAT_ID
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -23,18 +23,22 @@ async def main():
         MessageHandler(
             filters.TEXT
             & ~filters.COMMAND
-            & ~filters.Chat(chat_id=TELEGRAM_SUPPORT_CHAT_ID),
+            & ~filters.Chat(
+                chat_id=[TELEGRAM_SUPPORT_CHAT_ID, PERSONAL_ACCOUNT_CHAT_ID]
+            ),
             forward_to_group,
         )
     )
     application.add_handler(
         MessageHandler(
             filters.TEXT
-            & filters.Chat(chat_id=TELEGRAM_SUPPORT_CHAT_ID)
+            & filters.Chat(chat_id=[TELEGRAM_SUPPORT_CHAT_ID, PERSONAL_ACCOUNT_CHAT_ID])
             & filters.REPLY,
             forward_to_user,
         )
     )
+
+    logging.info("Handlers registered.")
 
     # Set up signal handlers
     loop = asyncio.get_running_loop()
