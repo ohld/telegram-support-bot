@@ -1,79 +1,75 @@
-import os
-from telegram.ext import CommandHandler, MessageHandler, Filters
+from telegram import Update
+from telegram.ext import ContextTypes
+from settings import (
+    TELEGRAM_SUPPORT_CHAT_ID,
+    FORWARD_MODE,
+    PERSONAL_ACCOUNT_CHAT_ID,
+    WELCOME_MESSAGE,
+)
+import logging
 
-from settings import WELCOME_MESSAGE, TELEGRAM_SUPPORT_CHAT_ID, REPLY_TO_THIS_MESSAGE, WRONG_REPLY
 
-
-def start(update, context):
-    update.message.reply_text(WELCOME_MESSAGE)
-
-    user_info = update.message.from_user.to_dict()
-
-    context.bot.send_message(
-        chat_id=TELEGRAM_SUPPORT_CHAT_ID,
-        text=f"""
-📞 Connected {user_info}.
-        """,
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Send a welcome message when the command /start is issued."""
+    await update.message.reply_text(
+        f"{WELCOME_MESSAGE} {update.effective_user.first_name}"
     )
 
 
-def forward_to_chat(update, context):
-    """{ 
-        'message_id': 5, 
-        'date': 1605106546, 
-        'chat': {'id': 49820636, 'type': 'private', 'username': 'danokhlopkov', 'first_name': 'Daniil', 'last_name': 'Okhlopkov'}, 
-        'text': 'TEST QOO', 'entities': [], 'caption_entities': [], 'photo': [], 'new_chat_members': [], 'new_chat_photo': [], 'delete_chat_photo': False, 'group_chat_created': False, 'supergroup_chat_created': False, 'channel_chat_created': False, 
-        'from': {'id': 49820636, 'first_name': 'Daniil', 'is_bot': False, 'last_name': 'Okhlopkov', 'username': 'danokhlopkov', 'language_code': 'en'}
-    }"""
-    forwarded = update.message.forward(chat_id=TELEGRAM_SUPPORT_CHAT_ID)
-    if not forwarded.forward_from:
-        context.bot.send_message(
-            chat_id=TELEGRAM_SUPPORT_CHAT_ID,
-            reply_to_message_id=forwarded.message_id,
-            text=f'{update.message.from_user.id}\n{REPLY_TO_THIS_MESSAGE}'
+async def forward_to_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Forward user messages to the support group or personal account."""
+    if FORWARD_MODE == "support_chat":
+        forwarded_msg = await update.message.forward(TELEGRAM_SUPPORT_CHAT_ID)
+    elif FORWARD_MODE == "personal_account":
+        forwarded_msg = await update.message.forward(PERSONAL_ACCOUNT_CHAT_ID)
+    else:
+        await update.message.reply_text("Invalid forwarding mode.")
+        return
+
+    if forwarded_msg:
+        # Store the user_id in the conversation context
+        context.bot_data[str(forwarded_msg.message_id)] = update.effective_user.id
+        await update.message.reply_text(
+            "Your message has been forwarded. We'll get back to you soon!"
         )
-
-
-def forward_to_user(update, context):
-    """{
-        'message_id': 10, 'date': 1605106662, 
-        'chat': {'id': -484179205, 'type': 'group', 'title': '☎️ SUPPORT CHAT', 'all_members_are_administrators': True}, 
-        'reply_to_message': {
-            'message_id': 9, 'date': 1605106659, 
-            'chat': {'id': -484179205, 'type': 'group', 'title': '☎️ SUPPORT CHAT', 'all_members_are_administrators': True}, 
-            'forward_from': {'id': 49820636, 'first_name': 'Daniil', 'is_bot': False, 'last_name': 'Okhlopkov', 'danokhlopkov': 'okhlopkov', 'language_code': 'en'}, 
-            'forward_date': 1605106658, 
-            'text': 'g', 'entities': [], 'caption_entities': [], 'photo': [], 'new_chat_members': [], 'new_chat_photo': [], 
-            'delete_chat_photo': False, 'group_chat_created': False, 'supergroup_chat_created': False, 'channel_chat_created': False, 
-            'from': {'id': 1440913096, 'first_name': 'SUPPORT', 'is_bot': True, 'username': 'lolkek'}
-        }, 
-        'text': 'ggg', 'entities': [], 'caption_entities': [], 'photo': [], 'new_chat_members': [], 'new_chat_photo': [], 'delete_chat_photo': False, 
-        'group_chat_created': False, 'supergroup_chat_created': False, 'channel_chat_created': False, 
-        'from': {'id': 49820636, 'first_name': 'Daniil', 'is_bot': False, 'last_name': 'Okhlopkov', 'username': 'danokhlopkov', 'language_code': 'en'}
-    }"""
-    user_id = None
-    if update.message.reply_to_message.forward_from:
-        user_id = update.message.reply_to_message.forward_from.id
-    elif REPLY_TO_THIS_MESSAGE in update.message.reply_to_message.text:
-        try:
-            user_id = int(update.message.reply_to_message.text.split('\n')[0])
-        except ValueError:
-            user_id = None
-    if user_id:
-        context.bot.copy_message(
-            message_id=update.message.message_id,
-            chat_id=user_id,
-            from_chat_id=update.message.chat_id
+        logging.info(
+            f"Forwarded message ID: {forwarded_msg.message_id} from user ID: {update.effective_user.id}"
         )
     else:
-        context.bot.send_message(
-            chat_id=TELEGRAM_SUPPORT_CHAT_ID,
-            text=WRONG_REPLY
+        await update.message.reply_text(
+            "Sorry, there was an error forwarding your message. Please try again later."
         )
 
 
-def setup_dispatcher(dp):
-    dp.add_handler(CommandHandler('start', start))
-    dp.add_handler(MessageHandler(Filters.chat_type.private, forward_to_chat))
-    dp.add_handler(MessageHandler(Filters.chat(TELEGRAM_SUPPORT_CHAT_ID) & Filters.reply, forward_to_user))
-    return dp
+async def forward_to_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Forward messages from the group or personal account back to the user."""
+    logging.info("forward_to_user called")
+    if update.message.reply_to_message and update.message.reply_to_message.from_user:
+        logging.info("Message is a reply to another message")
+        # Retrieve the user_id from the bot_data using the original message_id
+        original_message_id = str(update.message.reply_to_message.message_id)
+        user_id = context.bot_data.get(original_message_id)
+        logging.info(f"Original message ID: {original_message_id}, User ID: {user_id}")
+        if user_id:
+            try:
+                await context.bot.send_message(
+                    chat_id=user_id, text=update.message.text
+                )
+                await update.message.reply_text(
+                    "Message sent to the user successfully."
+                )
+                # Clean up the stored user_id
+                del context.bot_data[original_message_id]
+            except Exception as e:
+                logging.error(f"Error sending message to user: {str(e)}")
+                await update.message.reply_text(
+                    f"Error sending message to user: {str(e)}"
+                )
+        else:
+            logging.warning("Could not find the user to reply to.")
+            await update.message.reply_text("Could not find the user to reply to.")
+    else:
+        logging.warning("This message is not a reply to a forwarded message.")
+        await update.message.reply_text(
+            "This message is not a reply to a forwarded message."
+        )
